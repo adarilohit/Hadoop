@@ -1,0 +1,29 @@
+cd downloads
+ls
+#copy text file from local file system to HDFS
+hadoop fs-copyFromLocal word.txt
+hadoop fs -ls
+
+#copy file within hdfs
+hadoop fs -cp word.txt word2.txt
+hadoop fs -ls
+
+#copy word2.txt file from hdfs to local file system
+hadoop  fs -copyToLocal word2.txt
+ls
+
+#delete file in hdfs
+hadoop fs -rm word.txt
+
+#word count
+hadoop jar /usr/jars/hadoop-examples.jar
+hadoop fs -ls
+
+hadoop jar /usr/jars/hadoop-examples.jar wordcount
+hadoop jar /usr/jars/hadoop-examples.jar wordcount words.txt out
+
+hadoop fs –ls
+hadoop –fs ls out
+
+hadoop fs –copyToLocal out/part-r-00000 local.txt
+more local.txt
