@@ -1,0 +1,60 @@
+# E-commerce Transaction Analysis using Hadoop HDFS, MapReduce, Pig, and Hive
+
+## Step 1: Data Ingestion & Storage in HDFS
+
+# Create directories in HDFS
+hdfs dfs -mkdir /ecommerce_data
+hdfs dfs -put transactions.csv /ecommerce_data/
+
+## Step 2: MapReduce Job for Data Processing
+
+from mrjob.job import MRJob
+
+class SalesAggregator(MRJob):
+    def mapper(self, _, line):
+        fields = line.split(',')
+        if len(fields) == 5:
+            category = fields[2]  # Product category
+            amount = float(fields[3])  # Sales amount
+            yield category, amount
+
+    def reducer(self, category, values):
+        yield category, sum(values)
+
+if __name__ == "__main__":
+    SalesAggregator.run()
+
+# Run the MapReduce job
+!python sales_mapper.py transactions.csv > sales_output
+
+## Step 3: Data Transformation with Pig
+
+# Load data from HDFS
+transactions = LOAD '/ecommerce_data/transactions.csv' USING PigStorage(',') AS (order_id:int, product:chararray, category:chararray, price:float, date:chararray);
+
+# Group by category and compute total revenue
+sales_summary = FOREACH (GROUP transactions BY category) GENERATE group AS category, SUM(transactions.price) AS total_revenue;
+
+# Store results back in HDFS
+STORE sales_summary INTO '/ecommerce_data/sales_summary' USING PigStorage(',');
+
+## Step 4: Querying with Hive
+
+# Create Hive table
+CREATE EXTERNAL TABLE IF NOT EXISTS ecommerce_transactions (
+    order_id INT,
+    product STRING,
+    category STRING,
+    price FLOAT,
+    date STRING
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+STORED AS TEXTFILE
+LOCATION '/ecommerce_data/';
+
+# Query sales trends
+SELECT category, SUM(price) AS total_sales FROM ecommerce_transactions GROUP BY category ORDER BY total_sales DESC;
+
+# Find top customers based on purchase amount
+SELECT customer_id, SUM(price) AS total_spent FROM ecommerce_transactions GROUP BY customer_id ORDER BY total_spent DESC LIMIT 10;
